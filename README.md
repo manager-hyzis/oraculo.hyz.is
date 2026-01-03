@@ -1,8 +1,8 @@
 # 🚀 Launch Your Decentralized Prediction Market in Minutes
 
-[![License: Forkast MIT+Commons](https://img.shields.io/badge/License-Forkast--MIT--Commons-blue.svg)](./LICENSE) [![CI](https://github.com/forkast-prediction-market/forkast-prediction-market/actions/workflows/ci.yml/badge.svg)](https://github.com/forkast-prediction-market/forkast-prediction-market/actions/workflows/ci.yml)
+[![License: Demo MIT+Commons](https://img.shields.io/badge/License-Demo--MIT--Commons-blue.svg)](./LICENSE) [![CI](https://github.com/forkast-prediction-market/forkast-prediction-market/actions/workflows/ci.yml/badge.svg)](https://github.com/forkast-prediction-market/forkast-prediction-market/actions/workflows/ci.yml)
 
-[![Forkast Banner](https://i.imgur.com/G9wM4Na.png)](https://forka.st)
+[![Demo Banner](https://i.imgur.com/G9wM4Na.png)](https://forka.st)
 
 Open-source project to launch and monetize Web3 prediction markets, inspired by Polymarket, but with full transparency and control.
 
@@ -48,7 +48,7 @@ Complete Step 3 (Supabase) and Step 4 (environment) first, then redeploy from yo
 
    1. **Download** the `.env.example` file from this repository
    2. **Edit** it with your configuration:
-      - **Forkast CLOB Ordersbook**: Connect your wallet at [auth.forka.st](https://auth.forka.st), sign to verify ownership, and copy the API key, secret, and passphrase
+      - **Demo CLOB Ordersbook**: Connect your wallet at [auth.forka.st](https://auth.forka.st), sign to verify ownership, and copy the API key, secret, and passphrase
       - **Reown AppKit**: Get Project ID at [dashboard.reown.com](https://dashboard.reown.com)
       - **Better Auth**: Generate secret at [better-auth.com](https://www.better-auth.com/docs/installation#set-environment-variables)
       - **CRON_SECRET**: Create a random secret of at least 16 characters
@@ -63,7 +63,7 @@ Complete Step 3 (Supabase) and Step 4 (environment) first, then redeploy from yo
 
 ### 6. Sync Your Fork (via GitHub Actions)
 
-In your forked Forkast repository:
+In your forked Demo repository:
 1. Go to **Settings** → **Actions** → **General**
 2. Select **"Allow all actions and reusable workflows"**
 3. Click **Save** - This enables automatic sync with the main repository
@@ -90,7 +90,7 @@ In your forked Forkast repository:
 
 ## ⚠️ Disclaimer
 
-Forkast is provided "as is" and should be used at your own risk. Review the [Modified MIT License with Commons Clause](./LICENSE) before deploying production forks: running derivatives that alter the core on-chain contracts or orderbook modules may fall outside the permitted use. Always verify smart contracts and comply with relevant regulations in your jurisdiction.
+Demo is provided "as is" and should be used at your own risk. Review the [Modified MIT License with Commons Clause](./LICENSE) before deploying production forks: running derivatives that alter the core on-chain contracts or orderbook modules may fall outside the permitted use. Always verify smart contracts and comply with relevant regulations in your jurisdiction.
 
 ## 🔗 Links
 
@@ -108,5 +108,5 @@ Forkast is provided "as is" and should be used at your own risk. Review the [Mod
 
 ---
 *🚧 This project is under active development.
-Developers and contributors are welcome to join and help build Forkast into a fully decentralized ecosystem.*
+Developers and contributors are welcome to join and help build Demo into a fully decentralized ecosystem.*
 </div>
