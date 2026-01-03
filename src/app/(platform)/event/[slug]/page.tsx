@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
+import type { PageProps } from '@/types/next'
 import EventContent from '@/app/(platform)/event/[slug]/_components/EventContent'
 import { loadMarketContextSettings } from '@/lib/ai/market-context-config'
 import { EventRepository } from '@/lib/db/queries/event'

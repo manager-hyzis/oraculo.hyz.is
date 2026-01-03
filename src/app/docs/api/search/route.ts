@@ -12,6 +12,7 @@ export const { GET } = createSearchAPI('advanced', {
     description: page.data.description,
     url: page.url,
     id: page.url,
+    // @ts-expect-error - fumadocs-mdx provides this property at runtime
     structuredData: page.data.structuredData,
   })),
 })

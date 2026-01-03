@@ -96,14 +96,15 @@ async function uploadImage(user: any, image: File) {
   const fileName = `users/avatars/${user.id}-${Date.now()}.jpg`
 
   const arrayBuffer = await image.arrayBuffer()
+  const uint8Array = new Uint8Array(arrayBuffer)
 
-  const resizedBuffer = await sharp(new Uint8Array(arrayBuffer))
+  const resizedBuffer = await sharp(Buffer.from(uint8Array))
     .resize(100, 100, { fit: 'cover' })
     .jpeg({ quality: 90 })
     .toBuffer()
 
   try {
-    await uploadToR2(fileName, resizedBuffer, 'image/jpeg')
+    await uploadToR2(fileName, resizedBuffer as unknown as ArrayBuffer, 'image/jpeg')
     return fileName
   }
   catch {

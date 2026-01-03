@@ -1,6 +1,7 @@
 'use cache'
 
 import type { Metadata } from 'next'
+import type { LayoutProps } from '@/types/next'
 import SettingsSidebar from '@/app/(platform)/settings/_components/SettingsSidebar'
 
 export const metadata: Metadata = {

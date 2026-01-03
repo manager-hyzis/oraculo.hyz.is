@@ -2,6 +2,7 @@
 
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
+import type { PageProps } from '@/types/next'
 import PublicProfileHeroCards from '@/app/(platform)/[username]/_components/PublicProfileHeroCards'
 import PublicProfileTabs from '@/app/(platform)/[username]/_components/PublicProfileTabs'
 import { UserRepository } from '@/lib/db/queries/user'

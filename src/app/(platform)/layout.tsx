@@ -1,6 +1,7 @@
 'use cache'
 
 import { Suspense } from 'react'
+import type { LayoutProps } from '@/types/next'
 import Header from '@/components/Header'
 import NavigationTabs from '@/components/NavigationTabs'
 import PlatformLayoutSkeleton from '@/components/PlatformLayoutSkeleton'
