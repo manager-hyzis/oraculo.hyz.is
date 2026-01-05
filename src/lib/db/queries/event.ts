@@ -9,13 +9,37 @@ import { comments } from '@/lib/db/schema/comments/tables'
 import { event_tags, events, markets, tags } from '@/lib/db/schema/events/tables'
 import { runQuery } from '@/lib/db/utils/run-query'
 import { db } from '@/lib/drizzle'
-import { getImageUrl } from '@/lib/image'
+import { resolveDisplayPrice } from '@/lib/market-chance'
+import { getSupabaseImageUrl } from '@/lib/supabase'
 
 const HIDE_FROM_NEW_TAG_SLUG = 'hide-from-new'
 
 type PriceApiResponse = Record<string, { BUY?: string, SELL?: string } | undefined>
 interface OutcomePrices { buy: number, sell: number }
 const MAX_PRICE_BATCH = 500
+
+interface LastTradePriceEntry {
+  token_id: string
+  price: string
+  side: 'BUY' | 'SELL'
+}
+
+function normalizeTradePrice(value: string | undefined) {
+  if (!value) {
+    return null
+  }
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed)) {
+    return null
+  }
+  if (parsed < 0) {
+    return 0
+  }
+  if (parsed > 1) {
+    return 1
+  }
+  return parsed
+}
 
 async function fetchPriceBatch(endpoint: string, tokenIds: string[]): Promise<PriceApiResponse | null> {
   try {
@@ -41,6 +65,47 @@ async function fetchPriceBatch(endpoint: string, tokenIds: string[]): Promise<Pr
     console.error('Failed to fetch outcome prices batch from CLOB.', error)
     return null
   }
+}
+
+async function fetchLastTradePrices(tokenIds: string[]): Promise<Map<string, number>> {
+  const uniqueTokenIds = Array.from(new Set(tokenIds.filter(Boolean)))
+
+  if (!uniqueTokenIds.length) {
+    return new Map()
+  }
+
+  const endpoint = `${process.env.CLOB_URL!}/last-trades-prices`
+  const lastTradeMap = new Map<string, number>()
+
+  try {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(uniqueTokenIds.map(tokenId => ({ token_id: tokenId }))),
+      cache: 'no-store',
+    })
+
+    if (!response.ok) {
+      return lastTradeMap
+    }
+
+    const payload = await response.json() as LastTradePriceEntry[]
+    payload.forEach((entry) => {
+      const normalized = normalizeTradePrice(entry?.price)
+      if (normalized != null && entry?.token_id) {
+        lastTradeMap.set(entry.token_id, normalized)
+      }
+    })
+  }
+  catch (error) {
+    console.error('Failed to fetch last trades prices', error)
+    return lastTradeMap
+  }
+
+  return lastTradeMap
 }
 
 function applyPriceBatch(
@@ -130,7 +195,11 @@ type EventWithTags = typeof events.$inferSelect & {
 }
 
 type EventWithTagsAndMarkets = EventWithTags & {
-  markets: (typeof markets.$inferSelect)[]
+  markets: (typeof markets.$inferSelect & {
+    condition?: typeof conditions.$inferSelect & {
+      outcomes: (typeof outcomes.$inferSelect)[]
+    }
+  })[]
 }
 
 type DrizzleEventResult = typeof events.$inferSelect & {
@@ -152,6 +221,7 @@ interface RelatedEvent {
   title: string
   icon_url: string
   common_tags_count: number
+  chance: number | null
 }
 
 function eventResource(event: DrizzleEventResult, userId: string, priceMap: Map<string, OutcomePrices>): Event {
@@ -195,7 +265,7 @@ function eventResource(event: DrizzleEventResult, userId: string, priceMap: Map<
       volume: normalizedTotalVolume,
       volume_24h: normalizedCurrentVolume24h,
       outcomes: normalizedOutcomes,
-      icon_url: getImageUrl(market.icon_url),
+      icon_url: getSupabaseImageUrl(market.icon_url),
       condition: market.condition
         ? {
             ...market.condition,
@@ -223,7 +293,7 @@ function eventResource(event: DrizzleEventResult, userId: string, priceMap: Map<
     slug: event.slug || '',
     title: event.title || '',
     creator: event.creator || '',
-    icon_url: getImageUrl(event.icon_url),
+    icon_url: getSupabaseImageUrl(event.icon_url),
     show_market_icons: event.show_market_icons ?? true,
     enable_neg_risk: Boolean(event.enable_neg_risk),
     neg_risk_augmented: Boolean(event.neg_risk_augmented),
@@ -515,6 +585,8 @@ export const EventRepository = {
     slug: string
     is_active: boolean
     is_resolved: boolean
+    neg_risk: boolean
+    event_enable_neg_risk: boolean
     outcomes: Array<{
       token_id: string
       outcome_text: string
@@ -528,6 +600,7 @@ export const EventRepository = {
         slug: string
         is_active: boolean | null
         is_resolved: boolean | null
+        neg_risk: boolean | null
         condition: {
           outcomes: Array<{
             token_id: string
@@ -536,10 +609,17 @@ export const EventRepository = {
           }>
         } | null
       }
+      interface EventMarketMetadataRow {
+        enable_neg_risk: boolean | null
+        markets?: MarketMetadataRow[]
+      }
 
       const eventResult = await db.query.events.findFirst({
         where: eq(events.slug, slug),
-        columns: { id: true },
+        columns: {
+          id: true,
+          enable_neg_risk: true,
+        },
         with: {
           markets: {
             columns: {
@@ -548,6 +628,7 @@ export const EventRepository = {
               slug: true,
               is_active: true,
               is_resolved: true,
+              neg_risk: true,
             },
             with: {
               condition: {
@@ -565,7 +646,7 @@ export const EventRepository = {
             },
           },
         },
-      }) as { markets?: MarketMetadataRow[] } | undefined
+      }) as EventMarketMetadataRow | undefined
 
       if (!eventResult) {
         throw new Error('Event not found')
@@ -577,6 +658,8 @@ export const EventRepository = {
         slug: market.slug,
         is_active: Boolean(market.is_active),
         is_resolved: Boolean(market.is_resolved),
+        neg_risk: Boolean(market.neg_risk),
+        event_enable_neg_risk: Boolean(eventResult.enable_neg_risk),
         outcomes: (market.condition?.outcomes ?? []).map(outcome => ({
           token_id: outcome.token_id,
           outcome_text: outcome.outcome_text || '',
@@ -687,6 +770,18 @@ export const EventRepository = {
             columns: {
               icon_url: true,
             },
+            with: {
+              condition: {
+                with: {
+                  outcomes: {
+                    columns: {
+                      token_id: true,
+                      outcome_index: true,
+                    },
+                  },
+                },
+              },
+            },
           },
         },
         limit: 50,
@@ -705,12 +800,19 @@ export const EventRepository = {
           const eventTagIds = event.eventTags.map(et => et.tag_id)
           const commonTagsCount = eventTagIds.filter(tagId => selectedTagIds.includes(tagId)).length
 
+          const market = event.markets[0]
+          const outcomes = market?.condition?.outcomes ?? []
+          const yesOutcome = outcomes.find(outcome => Number(outcome.outcome_index) === OUTCOME_INDEX.YES)
+            ?? outcomes[0]
+          const yesTokenId = yesOutcome?.token_id
+
           return {
             id: event.id,
             slug: event.slug,
             title: event.title,
             icon_url: event.markets[0]?.icon_url || '',
             common_tags_count: commonTagsCount,
+            yes_token_id: yesTokenId,
           }
         })
         .filter(event => event.common_tags_count > 0)
@@ -721,16 +823,35 @@ export const EventRepository = {
         return { data: [], error: null }
       }
 
-      const transformedResults = results
-        .map(row => ({
+      const topResults = results
+        .filter(event => event.common_tags_count > 0)
+        .slice(0, 3)
+
+      const tokenIds = topResults
+        .map(event => event.yes_token_id)
+        .filter((tokenId): tokenId is string => Boolean(tokenId))
+      const priceMap = await fetchOutcomePrices(tokenIds)
+      const lastTradesByToken = await fetchLastTradePrices(tokenIds)
+
+      const transformedResults = topResults.map((row) => {
+        const price = row.yes_token_id ? priceMap.get(row.yes_token_id) : undefined
+        const lastTrade = row.yes_token_id ? lastTradesByToken.get(row.yes_token_id) : null
+        const displayPrice = resolveDisplayPrice({
+          bid: price?.sell ?? null,
+          ask: price?.buy ?? null,
+          lastTrade,
+        })
+        const chance = displayPrice != null ? displayPrice * 100 : null
+
+        return {
           id: String(row.id),
           slug: String(row.slug),
           title: String(row.title),
-          icon_url: getImageUrl(String(row.icon_url || '')),
+          icon_url: getSupabaseImageUrl(String(row.icon_url || '')),
           common_tags_count: Number(row.common_tags_count),
-        }))
-        .filter(event => event.common_tags_count > 0)
-        .slice(0, 3)
+          chance,
+        }
+      })
 
       return { data: transformedResults, error: null }
     })

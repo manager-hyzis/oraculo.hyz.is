@@ -3,7 +3,7 @@ import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { CommentRepository } from '@/lib/db/queries/comment'
 import { EventRepository } from '@/lib/db/queries/event'
 import { UserRepository } from '@/lib/db/queries/user'
-import { getImageUrl } from '@/lib/image'
+import { getSupabaseImageUrl } from '@/lib/supabase'
 
 export async function GET(
   request: Request,
@@ -14,6 +14,9 @@ export async function GET(
     const { searchParams } = new URL(request.url)
     const limit = Number.parseInt(searchParams.get('limit') || '20')
     const offset = Number.parseInt(searchParams.get('offset') || '0')
+    const sortParam = searchParams.get('sortBy') || 'newest'
+    const normalizedSort = sortParam.toLowerCase().replace(/\s+/g, '_')
+    const sortBy = normalizedSort === 'most_liked' ? 'most_liked' : 'newest'
 
     const { data: event, error: eventError } = await EventRepository.getIdBySlug(slug)
     if (!event || eventError) {
@@ -23,14 +26,19 @@ export async function GET(
     const user = await UserRepository.getCurrentUser()
     const currentUserId = user?.id
 
-    const { data: comments, error: rootCommentsError } = await CommentRepository.getEventComments(event.id, limit, offset)
+    const { data: comments, error: rootCommentsError } = await CommentRepository.getEventComments(
+      event.id,
+      limit,
+      offset,
+      sortBy,
+    )
     if (rootCommentsError) {
       return NextResponse.json({ error: DEFAULT_ERROR_MESSAGE }, { status: 500 })
     }
 
     const normalizedComments = (comments ?? []).map((comment: any) => ({
       ...comment,
-      user_avatar: comment.user_avatar ? getImageUrl(comment.user_avatar) : `https://avatar.vercel.sh/${comment.user_address}.png`,
+      user_avatar: comment.user_avatar ? getSupabaseImageUrl(comment.user_avatar) : `https://avatar.vercel.sh/${comment.user_address}.png`,
       recent_replies: Array.isArray(comment.recent_replies) ? comment.recent_replies : [],
     }))
 
@@ -72,7 +80,7 @@ export async function GET(
           .slice(0, comment.replies_count > 3 ? 3 : comment.replies_count)
           .map((reply: any) => ({
             ...reply,
-            user_avatar: reply.user_avatar ? getImageUrl(reply.user_avatar) : `https://avatar.vercel.sh/${reply.user_address}.png`,
+            user_avatar: reply.user_avatar ? getSupabaseImageUrl(reply.user_avatar) : `https://avatar.vercel.sh/${reply.user_address}.png`,
             is_owner: false,
             user_has_liked: false,
           })),
@@ -94,7 +102,7 @@ export async function GET(
           .slice(0, comment.replies_count > 3 ? 3 : comment.replies_count)
           .map((reply: any) => ({
             ...reply,
-            user_avatar: reply.user_avatar ? getImageUrl(reply.user_avatar) : `https://avatar.vercel.sh/${reply.user_address}.png`,
+            user_avatar: reply.user_avatar ? getSupabaseImageUrl(reply.user_avatar) : `https://avatar.vercel.sh/${reply.user_address}.png`,
             is_owner: currentUserId === reply.user_id,
             user_has_liked: false,
           })),
@@ -122,7 +130,7 @@ export async function GET(
         user_has_liked: likedIds.has(comment.id),
         recent_replies: limitedReplies.map((reply: any) => ({
           ...reply,
-          user_avatar: reply.user_avatar ? getImageUrl(reply.user_avatar) : `https://avatar.vercel.sh/${reply.user_address}.png`,
+          user_avatar: reply.user_avatar ? getSupabaseImageUrl(reply.user_avatar) : `https://avatar.vercel.sh/${reply.user_address}.png`,
           is_owner: currentUserId === reply.user_id,
           user_has_liked: likedIds.has(reply.id),
         })),

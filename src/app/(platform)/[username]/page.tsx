@@ -2,7 +2,6 @@
 
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import type { PageProps } from '@/types/next'
 import PublicProfileHeroCards from '@/app/(platform)/[username]/_components/PublicProfileHeroCards'
 import PublicProfileTabs from '@/app/(platform)/[username]/_components/PublicProfileTabs'
 import { UserRepository } from '@/lib/db/queries/user'
@@ -12,7 +11,7 @@ import { fetchPortfolioSnapshot } from '@/lib/portfolio'
 export async function generateMetadata({ params }: PageProps<'/[username]'>): Promise<Metadata> {
   const { username } = await params
 
-  const isUsername = username.startsWith('@')
+  const isUsername = !username.startsWith('0x')
   const displayName = isUsername ? username : truncateAddress(username)
 
   return {

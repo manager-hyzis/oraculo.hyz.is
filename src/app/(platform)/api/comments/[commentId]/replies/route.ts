@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { CommentRepository } from '@/lib/db/queries/comment'
 import { UserRepository } from '@/lib/db/queries/user'
-import { getImageUrl } from '@/lib/image'
+import { getSupabaseImageUrl } from '@/lib/supabase'
 
 export async function GET(
   _: Request,
@@ -49,7 +49,7 @@ export async function GET(
       const likedIds = new Set(((userLikes as unknown as any[]) ?? []).map((like: any) => like.comment_id))
       normalizedReplies = normalizedReplies.map(reply => ({
         ...reply,
-        user_avatar: reply.user_avatar ? getImageUrl(reply.user_avatar) : `https://avatar.vercel.sh/${user.user_avatar}.png`,
+        user_avatar: reply.user_avatar ? getSupabaseImageUrl(reply.user_avatar) : `https://avatar.vercel.sh/${user.user_avatar}.png`,
         user_has_liked: likedIds.has(reply.id),
       }))
     }

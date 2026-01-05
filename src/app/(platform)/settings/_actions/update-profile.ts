@@ -6,7 +6,7 @@ import sharp from 'sharp'
 import { z } from 'zod'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { UserRepository } from '@/lib/db/queries/user'
-import { uploadToR2 } from '@/lib/r2'
+import { supabaseAdmin } from '@/lib/supabase'
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024
 const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
@@ -95,19 +95,23 @@ export async function updateUserAction(formData: FormData): Promise<ActionState>
 async function uploadImage(user: any, image: File) {
   const fileName = `users/avatars/${user.id}-${Date.now()}.jpg`
 
-  const arrayBuffer = await image.arrayBuffer()
-  const uint8Array = new Uint8Array(arrayBuffer)
+  const buffer = Buffer.from(await image.arrayBuffer())
 
-  const resizedBuffer = await sharp(Buffer.from(uint8Array))
+  const resizedBuffer = await sharp(buffer)
     .resize(100, 100, { fit: 'cover' })
     .jpeg({ quality: 90 })
     .toBuffer()
 
-  try {
-    await uploadToR2(fileName, resizedBuffer as unknown as ArrayBuffer, 'image/jpeg')
-    return fileName
-  }
-  catch {
+  const { error } = await supabaseAdmin.storage
+    .from('forkast-assets')
+    .upload(fileName, resizedBuffer, {
+      contentType: 'image/jpeg',
+      cacheControl: '31536000',
+    })
+
+  if (error) {
     return user.image?.startsWith('http') ? null : user.image
   }
+
+  return fileName
 }

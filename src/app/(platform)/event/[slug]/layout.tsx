@@ -1,7 +1,3 @@
-'use cache'
-
-import type { LayoutProps } from '@/types/next'
-
 export default async function EventLayout({ children }: LayoutProps<'/event/[slug]'>) {
   return (
     <main className="container grid min-h-screen gap-8 pb-12 lg:grid-cols-[3fr_1fr] lg:gap-10">

@@ -2,7 +2,7 @@ import type { PublicProfile, User } from '@/types'
 import { NextResponse } from 'next/server'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { UserRepository } from '@/lib/db/queries/user'
-import { getImageUrl } from '@/lib/image'
+import { getSupabaseImageUrl } from '@/lib/supabase'
 import { getUserPublicAddress } from '@/lib/user-address'
 
 export async function GET(request: Request) {
@@ -34,7 +34,7 @@ export async function GET(request: Request) {
         address: publicAddress,
         proxy_wallet_address: user.proxy_wallet_address ?? null,
         username: user.username!,
-        image: user.image ? getImageUrl(user.image) : `https://avatar.vercel.sh/${avatarSeed}.png`,
+        image: user.image ? getSupabaseImageUrl(user.image) : `https://avatar.vercel.sh/${avatarSeed}.png`,
         created_at: new Date(user.created_at),
       }
     })

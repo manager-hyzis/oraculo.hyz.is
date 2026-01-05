@@ -1,6 +1,5 @@
 import type { MDXComponents } from 'mdx/types'
 import type { Metadata } from 'next'
-import type { PageProps } from '@/types/next'
 import { DocsBody, DocsDescription, DocsPage, DocsTitle } from 'fumadocs-ui/layouts/docs/page'
 import defaultMdxComponents from 'fumadocs-ui/mdx'
 import { notFound, redirect } from 'next/navigation'
@@ -34,14 +33,11 @@ export default async function Page(props: PageProps<'/docs/[[...slug]]'>) {
     redirect('/docs/users')
   }
 
-  // @ts-expect-error - fumadocs-mdx provides these properties at runtime
   const MDX = page.data.body
 
   return (
     <DocsPage
-      // @ts-expect-error - fumadocs-mdx provides these properties at runtime
       toc={page.data.toc}
-      // @ts-expect-error - fumadocs-mdx provides these properties at runtime
       full={page.data.full}
       tableOfContent={{
         style: 'clerk',

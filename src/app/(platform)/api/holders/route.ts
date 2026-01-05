@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { fetchTopHoldersFromDataApi } from '@/lib/data-api/holders'
 import { UserRepository } from '@/lib/db/queries/user'
-import { getImageUrl } from '@/lib/image'
+import { getSupabaseImageUrl } from '@/lib/supabase'
 import { normalizeAddress } from '@/lib/wallet'
 
 interface HolderUser {
@@ -33,7 +33,7 @@ function normalizeAvatarUrl(image: string | null | undefined, fallbackAddress: s
     return image
   }
 
-  return getImageUrl(image)
+  return getSupabaseImageUrl(image)
 }
 
 export async function GET(request: Request) {

@@ -8,7 +8,7 @@ import { createPublicClient, http } from 'viem'
 import { isAdminWallet } from '@/lib/admin'
 import { projectId } from '@/lib/appkit'
 import { db } from '@/lib/drizzle'
-import { getImageUrl } from '@/lib/image'
+import { getSupabaseImageUrl } from '@/lib/supabase'
 import { ensureUserTradingAuthSecretFingerprint } from '@/lib/trading-auth/server'
 import { sanitizeTradingAuthSettings } from '@/lib/trading-auth/utils'
 import * as schema from './db/schema'
@@ -40,7 +40,7 @@ export const auth = betterAuth({
         user: {
           ...user,
           settings,
-          image: user.image ? getImageUrl(user.image) : `https://avatar.vercel.sh/${user.name}.png`,
+          image: user.image ? getSupabaseImageUrl(user.image) : `https://avatar.vercel.sh/${user.name}.png`,
           is_admin: isAdminWallet(user.name),
         },
         session,

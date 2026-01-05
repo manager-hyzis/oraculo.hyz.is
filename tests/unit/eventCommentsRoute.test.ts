@@ -6,7 +6,7 @@ const mocks = vi.hoisted(() => ({
   getEventComments: vi.fn(),
   getUsersByIds: vi.fn(),
   getCommentsIdsLikedByUser: vi.fn(),
-  getImageUrl: vi.fn((path: string) => `r2:${path}`),
+  getSupabaseImageUrl: vi.fn((path: string) => `supabase:${path}`),
 }))
 
 vi.mock('@/lib/db/queries/event', () => ({
@@ -27,8 +27,8 @@ vi.mock('@/lib/db/queries/comment', () => ({
   },
 }))
 
-vi.mock('@/lib/image', () => ({
-  getImageUrl: (path: string) => mocks.getImageUrl(path),
+vi.mock('@/lib/supabase', () => ({
+  getSupabaseImageUrl: (path: string) => mocks.getSupabaseImageUrl(path),
 }))
 
 const { GET } = await import('@/app/(platform)/api/events/[slug]/comments/route')
@@ -72,7 +72,7 @@ describe('event comments route', () => {
     expect(response.status).toBe(200)
     const body = await response.json()
     expect(Array.isArray(body)).toBe(true)
-    expect(body[0].user_avatar).toBe('r2:avatars/a.png')
+    expect(body[0].user_avatar).toBe('supabase:avatars/a.png')
     expect(body[0].user_proxy_wallet_address).toBe('0xproxy1')
     expect(body[0].user_has_liked).toBe(false)
     expect(body[0].recent_replies).toHaveLength(3)

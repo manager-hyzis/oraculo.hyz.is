@@ -1,5 +1,4 @@
 import type { VolumeResponseItem, VolumeWorkItem } from '@/app/api/sync/volume/helpers'
-import { eq, inArray } from 'drizzle-orm'
 import { NextResponse } from 'next/server'
 import {
   chunkVolumeWork,
@@ -13,8 +12,7 @@ import {
   VOLUME_REQUEST_TIMEOUT_MS,
 } from '@/app/api/sync/volume/helpers'
 import { isCronAuthorized } from '@/lib/auth-cron'
-import { db } from '@/lib/drizzle'
-import * as schema from '@/lib/db/schema'
+import { supabaseAdmin } from '@/lib/supabase'
 
 export const maxDuration = 300
 
@@ -150,31 +148,33 @@ async function buildVolumeWorklist(limit: number): Promise<{
   skipped: number
   errors: { context: string, error: string }[]
 }> {
-  const markets = await db
-    .select({
-      condition_id: schema.markets.condition_id,
-      volume_24h: schema.markets.volume_24h,
-      volume: schema.markets.volume,
-    })
-    .from(schema.markets)
-    .where(eq(schema.markets.is_active, true))
-    .orderBy(schema.markets.updated_at)
+  const { data: markets, error: marketsError } = await supabaseAdmin
+    .from('markets')
+    .select('condition_id, volume_24h, volume')
+    .eq('is_active', true)
+    .eq('is_resolved', false)
+    .order('updated_at', { ascending: true })
     .limit(limit)
 
-  const marketRows: MarketRow[] = markets
+  if (marketsError) {
+    throw new Error(`Failed to load markets: ${marketsError.message}`)
+  }
+
+  const marketRows: MarketRow[] = markets ?? []
   const conditionIds = marketRows.map(market => market.condition_id)
 
   let outcomesMap = new Map<string, string[]>()
   if (conditionIds.length > 0) {
-    const outcomes = await db
-      .select({
-        condition_id: schema.outcomes.condition_id,
-        token_id: schema.outcomes.token_id,
-      })
-      .from(schema.outcomes)
-      .where(inArray(schema.outcomes.condition_id, conditionIds))
+    const { data: outcomes, error: outcomesError } = await supabaseAdmin
+      .from('outcomes')
+      .select('condition_id, token_id')
+      .in('condition_id', conditionIds)
 
-    const outcomeRows: OutcomeRow[] = outcomes
+    if (outcomesError) {
+      throw new Error(`Failed to load outcomes: ${outcomesError.message}`)
+    }
+
+    const outcomeRows: OutcomeRow[] = outcomes ?? []
     outcomesMap = buildOutcomeMap(outcomeRows)
   }
 
@@ -252,12 +252,16 @@ async function fetchVolumeBatch(batch: VolumeWorkItem[]): Promise<VolumeResponse
 }
 
 async function updateMarketVolume(conditionId: string, totalVolume: string, volume24h: string) {
-  await db
-    .update(schema.markets)
-    .set({
+  const { error } = await supabaseAdmin
+    .from('markets')
+    .update({
       volume: totalVolume,
       volume_24h: volume24h,
-      updated_at: new Date(),
+      updated_at: new Date().toISOString(),
     })
-    .where(eq(schema.markets.condition_id, conditionId))
+    .eq('condition_id', conditionId)
+
+  if (error) {
+    throw new Error(error.message)
+  }
 }

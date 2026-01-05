@@ -1,7 +1,3 @@
-'use cache'
-
-import type { LayoutProps } from '@/types/next'
-
 export default async function PublicProfileLayout({ children }: LayoutProps<'/[username]'>) {
   return (
     <main className="container py-8">

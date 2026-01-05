@@ -8,7 +8,7 @@ import { users } from '@/lib/db/schema/auth/tables'
 import { runQuery } from '@/lib/db/utils/run-query'
 import { db } from '@/lib/drizzle'
 import { getSafeProxyWalletAddress, isProxyWalletDeployed } from '@/lib/safe-proxy'
-import { getImageUrl } from '@/lib/image'
+import { getSupabaseImageUrl } from '@/lib/supabase'
 import { sanitizeTradingAuthSettings } from '@/lib/trading-auth/utils'
 import { normalizeAddress } from '@/lib/wallet'
 
@@ -42,7 +42,7 @@ export const UserRepository = {
         id: rawData.id,
         proxy_wallet_address: rawData.proxy_wallet_address,
         username: rawData.username!,
-        image: rawData.image ? getImageUrl(rawData.image) : `https://avatar.vercel.sh/${avatarSeed || 'user'}.png`,
+        image: rawData.image ? getSupabaseImageUrl(rawData.image) : `https://avatar.vercel.sh/${avatarSeed || 'user'}.png`,
         created_at: rawData.created_at,
       }
 
